@@ -3352,9 +3352,6 @@ static inline void cfs_se_util_change(struct sched_avg *avg)
 static int
 __update_load_avg_blocked_se(u64 now, int cpu, struct sched_entity *se)
 {
-	if (entity_is_task(se))
-		se->runnable_weight = se->load.weight;
-
 	if (___update_load_sum(now, cpu, &se->avg, 0, 0, 0, NULL)) {
 		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
 		trace_sched_load_se(se);
@@ -3367,9 +3364,6 @@ __update_load_avg_blocked_se(u64 now, int cpu, struct sched_entity *se)
 static int
 __update_load_avg_se(u64 now, int cpu, struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-	if (entity_is_task(se))
-		se->runnable_weight = se->load.weight;
-
 	if (___update_load_sum(now, cpu, &se->avg, !!se->on_rq, !!se->on_rq,
 			       cfs_rq->curr == se, NULL)) {
 		___update_load_avg(&se->avg, se_weight(se), se_runnable(se));
