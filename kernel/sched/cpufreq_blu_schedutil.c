@@ -4,7 +4,7 @@
  * Copyright (C) 2016, Intel Corporation
  * Author: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
  *
- * Copyright (C) 2018, eng.stk
+ * Copyright (C) 2018-2019, eng.stk
  * changes for blu_schedutil: eng.stk <eng.stk@sapo.pt>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 #include "sched.h"
 #include "tune.h"
+#include <uapi/linux/sched/types.h>
 
 unsigned long boosted_cpu_util(int cpu);
 
