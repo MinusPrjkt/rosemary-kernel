@@ -8064,7 +8064,7 @@ int free_reserved_memory(phys_addr_t start_phys,
 	memblock_free(start_phys, (end_phys - start_phys));
 
 	for (pos = start_phys; pos < end_phys; pos += PAGE_SIZE, pages++)
-		free_reserved_page(phys_to_page(pos));
+		free_reserved_page(pfn_to_page(pos >> PAGE_SHIFT));
 
 	if (pages)
 		pr_info("Freeing modem memory: %ldK from phys %llx\n",

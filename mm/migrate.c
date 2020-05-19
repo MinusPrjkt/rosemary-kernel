@@ -2374,26 +2374,23 @@ next:
  * valid page, it updates the src array and takes a reference on the page, in
  * order to pin the page until we lock it and unmap it.
  */
-static void migrate_vma_collect(struct migrate_vma *migrate)
-{
-	struct mm_walk mm_walk;
+static const struct mm_walk_ops migrate_vma_walk_ops = {
+	.pmd_entry	= migrate_vma_collect_pmd,
+	.pte_hole	= migrate_vma_collect_hole,
+};
 
-	mm_walk.pmd_entry = migrate_vma_collect_pmd;
-	mm_walk.pte_entry = NULL;
-	mm_walk.pte_hole = migrate_vma_collect_hole;
-	mm_walk.hugetlb_entry = NULL;
-	mm_walk.test_walk = NULL;
-	mm_walk.vma = migrate->vma;
-	mm_walk.mm = migrate->vma->vm_mm;
-	mm_walk.private = migrate;
+ static void migrate_vma_collect(struct migrate_vma *migrate)
+ {
+	struct mmu_notifier_range range;
 
-	mmu_notifier_invalidate_range_start(mm_walk.mm,
-					    migrate->start,
-					    migrate->end);
-	walk_page_range(migrate->start, migrate->end, &mm_walk);
-	mmu_notifier_invalidate_range_end(mm_walk.mm,
-					  migrate->start,
-					  migrate->end);
+	mmu_notifier_range_init(&range, MMU_NOTIFY_CLEAR, 0, NULL,
+		migrate->vma->vm_mm, migrate->start, migrate->end);
+	mmu_notifier_invalidate_range_start(&range);
+
+	walk_page_range(migrate->vma->vm_mm, migrate->start, migrate->end,
+			&migrate_vma_walk_ops, migrate);
+
+	mmu_notifier_invalidate_range_end(&range);
 
 	migrate->end = migrate->start + (migrate->npages << PAGE_SHIFT);
 }

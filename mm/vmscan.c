@@ -15,6 +15,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/mm.h>
+#include <linux/huge_mm.h>
 #include <linux/sched/mm.h>
 #include <linux/module.h>
 #include <linux/gfp.h>
@@ -3563,17 +3564,16 @@ done:
 	return -EAGAIN;
 }
 
+static const struct mm_walk_ops lru_gen_walk_ops = {
+	.test_walk = should_skip_vma,
+	.p4d_entry = walk_pud_range,
+};
+
 static void walk_mm(struct lruvec *lruvec, struct mm_struct *mm, struct lru_gen_mm_walk *walk)
 {
 	int err;
 	struct mem_cgroup *memcg = lruvec_memcg(lruvec);
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
-	struct mm_walk args = {
-		.mm = mm,
-		.private = walk,
-		.test_walk = should_skip_vma,
-		.p4d_entry = walk_pud_range,
-	};
 
 	walk->next_addr = FIRST_USER_ADDRESS;
 
@@ -3589,7 +3589,7 @@ static void walk_mm(struct lruvec *lruvec, struct mm_struct *mm, struct lru_gen_
 			unsigned long start = walk->next_addr;
 			unsigned long end = mm->highest_vm_end;
 
-			err = walk_page_range(start, end, &args);
+			err = walk_page_range(mm, start, end, &lru_gen_walk_ops, walk);
 
 			up_read(&mm->mmap_sem);
 

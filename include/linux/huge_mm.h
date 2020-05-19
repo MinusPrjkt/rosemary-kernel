@@ -306,6 +306,11 @@ static inline void vma_adjust_trans_huge(struct vm_area_struct *vma,
 					 long adjust_next)
 {
 }
+
+static inline bool is_huge_zero_pmd(pmd_t pmd)
+{
+	return false;
+}
 static inline int is_swap_pmd(pmd_t pmd)
 {
 	return 0;
