@@ -373,7 +373,7 @@ void LZ4_resetStreamHC(LZ4_streamHC_t *streamHCPtr, int compressionLevel);
  *
  * Return : dictionary size, in bytes (necessarily <= 64 KB)
  */
-int LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
+int	LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
 	int dictSize);
 
 /**
@@ -447,7 +447,7 @@ int LZ4_saveDictHC(LZ4_streamHC_t *streamHCPtr, char *safeBuffer,
  * Use this function to init an allocated `LZ4_stream_t` structure
  * and start a new compression.
  */
-__always_inline void LZ4_resetStream(LZ4_stream_t *LZ4_stream);
+void LZ4_resetStream(LZ4_stream_t *LZ4_stream);
 
 /**
  * LZ4_loadDict() - Load a static dictionary into LZ4_stream
