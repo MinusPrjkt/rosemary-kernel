@@ -1280,11 +1280,10 @@ struct sched_group_capacity {
 	 * CPU capacity of this group, SCHED_CAPACITY_SCALE being max capacity
 	 * for a single CPU.
 	 */
-	unsigned long capacity;
-	unsigned long min_capacity; /* Min per-CPU capacity in group */
-	unsigned long max_capacity; /* Max per-CPU capacity in group */
-	unsigned long next_update;
-	int imbalance; /* XXX unrelated to capacity but shared group state */
+	unsigned long		capacity;
+	unsigned long		min_capacity;		/* Min per-CPU capacity in group */
+	unsigned long		max_capacity;		/* Max per-CPU capacity in group */
+	int			imbalance;		/* XXX unrelated to capacity but shared group state */
 
 #ifdef CONFIG_SCHED_DEBUG
 	int id;
