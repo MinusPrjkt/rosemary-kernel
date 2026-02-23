@@ -229,11 +229,10 @@ static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
 				   unsigned int flags)
 {
 	if (flags & SCHED_CPUFREQ_IOWAIT) {
-		sg_cpu->iowait_boost = sg_cpu->iowait_boost_max;
+		sg_cpu->iowait_boost = 0;
 	} else if (sg_cpu->iowait_boost) {
 		s64 delta_ns = time - sg_cpu->last_update;
 
-		/* Clear iowait_boost if the CPU apprears to have been idle. */
 		if (delta_ns > TICK_NSEC)
 			sg_cpu->iowait_boost = 0;
 	}
@@ -284,7 +283,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	if (!sugov_should_update_freq(sg_policy, time))
 		return;
 
-	busy = sugov_cpu_is_busy(sg_cpu);
+	busy = false; /* force disable nohz busy detection */
 
 	if (flags & SCHED_CPUFREQ_DL) {
 		next_f = policy->cpuinfo.max_freq;
