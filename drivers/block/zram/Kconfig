@@ -28,10 +28,6 @@ config ZRAM_DEF_COMP_LZ4HC
 	bool "lz4hc"
 	depends on CRYPTO_LZ4HC
 
-config ZRAM_DEF_COMP_842
-	bool "842"
-	depends on CRYPTO_842
-
 config ZRAM_DEF_COMP_ZSTD
 	bool "zstd"
 	depends on CRYPTO_ZSTD
@@ -44,9 +40,7 @@ config ZRAM_DEF_COMP
 	default "lz4kd" if ZRAM_DEF_COMP_LZ4KD
 	default "lzo" if ZRAM_DEF_COMP_LZO
 	default "lz4hc" if ZRAM_DEF_COMP_LZ4HC
-	default "842" if ZRAM_DEF_COMP_842
 	default "zstd" if ZRAM_DEF_COMP_ZSTD
-	default "lzo"
 
 config ZRAM_WRITEBACK
 	bool "Write back incompressible or idle page to backing device"
