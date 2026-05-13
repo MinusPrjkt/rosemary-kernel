@@ -5438,13 +5438,13 @@ page_owner=on loop.max_part=16";
 
 		/* xiaomi pps */
 		xm_pps_single_charger_input_current = <2980000>;
-		xm_pps_single_charger_current = <6000000>;
+		xm_pps_single_charger_current = <3800000>;
 		xm_pps_dual_charger_input_current = <2980000>;
 		xm_pps_dual_charger_chg1_current = <500000>;
 		xm_pps_dual_charger_chg2_current = <2500000>;
 		xm_pps_max_vbus = <12000000>;
 		xm_pps_max_ibus = <2980000>;
-		xm_pps_single_charger_current_non_verified_pps = <4800000>;
+		xm_pps_single_charger_current_non_verified_pps = <3800000>;
 
 		/* dynamic mivr */
 		min_charger_voltage_1 = <4400000>;
