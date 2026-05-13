@@ -35,7 +35,7 @@
 #define PD_SRC_PDO_TYPE_AUGMENTED	3
 
 #define BATT_MAX_CHG_VOLT		4460 //new requirement from xiaomi hw, CP should config 4460
-#define BATT_FAST_CHG_CURR		6000
+#define BATT_FAST_CHG_CURR              3800
 #define BUS_MIVR_THRESHOLD		4200
 #define	BUS_OVP_THRESHOLD		12000
 #define	BUS_OVP_ALARM_THRESHOLD		9500
@@ -74,7 +74,7 @@ enum {
 
 static struct pdpm_config pm_config = {
 	.bat_volt_lp_lmt		= BAT_VOLT_LOOP_LMT,
-	.bat_curr_lp_lmt		= BAT_CURR_LOOP_LMT + 1000,
+        .bat_curr_lp_lmt                = BAT_CURR_LOOP_LMT,
 	.bus_volt_lp_lmt		= BUS_VOLT_LOOP_LMT,
 	.bus_curr_lp_lmt		= BAT_CURR_LOOP_LMT >> 1,
 
