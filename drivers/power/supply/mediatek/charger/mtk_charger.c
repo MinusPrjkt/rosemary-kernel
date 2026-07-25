@@ -1237,6 +1237,10 @@ void charger_manager_set_prop_system_temp_level(int temp_level)
 	union power_supply_propval val = {0,};
 	union power_supply_propval real_type = {0,};
 
+	/* clamp minimum to level 7 (~18W) to enforce charging speed limit */
+	if (temp_level < 7)
+	        temp_level = 7;
+
 	pr_info("%s: charger_online=%d\n", __func__, charger_online);
 	//if (!charger_online)
 		//return;
@@ -5151,7 +5155,7 @@ static int mtk_charger_probe(struct platform_device *pdev)
 
 	info->sw_jeita.error_recovery_flag = true;
 	info->is_input_suspend = false;
-	info->system_temp_level = 0;
+	info->system_temp_level = 7; /* hardcoded: limit charging to ~18W */
 	if (info->data.enable_vote) {
 		info->effective_fcc = info->data.current_max;
 	}
