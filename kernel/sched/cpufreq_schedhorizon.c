@@ -312,6 +312,9 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	struct cpufreq_policy *policy = sg_policy->policy;
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
+#ifndef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
+	unsigned int idx, l_freq, h_freq;
+#endif
 
 	freq = freq * util / max;
 	freq = freq / SCHED_CAPACITY_SCALE * capacity_margin;
@@ -320,9 +323,29 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 
 	sg_policy->cached_raw_freq = freq;
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
+	/*
+	 * SSPM firmware resolves the raw frequency to the closest supported
+	 * OPP itself (mt_cpufreq_find_close_freq() at the call site), so the
+	 * freq_table-based "round down if <20% away" step below does not
+	 * apply here and would just do redundant table lookups.
+	 */
 	return freq;
 #else
-	return cpufreq_driver_resolve_freq(policy, freq);
+	l_freq = cpufreq_driver_resolve_freq(policy, freq);
+	idx = cpufreq_frequency_table_target(policy, freq, CPUFREQ_RELATION_H);
+	h_freq = policy->freq_table[idx].frequency;
+	h_freq = clamp(h_freq, policy->min, policy->max);
+	if (l_freq <= h_freq || l_freq == policy->min)
+		return l_freq;
+
+	/*
+	 * Use the frequency step below if the calculated frequency is <20%
+	 * higher than it.
+	 */
+	if (mult_frac(100, freq - h_freq, l_freq - h_freq) < 20)
+		return h_freq;
+
+	return l_freq;
 #endif
 }
 #endif
