@@ -2069,7 +2069,7 @@ inserted:
 				 * e_reusable handling.
 				 */
 				if (hlist_bl_unhashed(&ce->e_hash_list) ||
-				    !ce->e_reusable) {
+				    !test_bit(MBE_REUSABLE_B, &ce->e_flags)) {
 					/*
 					 * Undo everything and check mbcache
 					 * again.
