@@ -591,12 +591,12 @@ static void sugov_work(struct kthread_work *work)
 {
 	struct sugov_policy *sg_policy = container_of(work, struct sugov_policy, work);
 
+	sg_policy->work_in_progress = false;
+
 	mutex_lock(&sg_policy->work_lock);
 	__cpufreq_driver_target(sg_policy->policy, sg_policy->next_freq,
 				CPUFREQ_RELATION_L);
 	mutex_unlock(&sg_policy->work_lock);
-
-	sg_policy->work_in_progress = false;
 }
 
 static void sugov_irq_work(struct irq_work *irq_work)
@@ -624,6 +624,7 @@ static void sugov_irq_work(struct irq_work *irq_work)
 /************************** sysfs interface ************************/
 
 static DEFINE_MUTEX(global_tunables_lock);
+static struct sugov_tunables *global_tunables;
 
 static inline struct sugov_tunables *to_sugov_tunables(struct gov_attr_set *attr_set)
 {
@@ -934,7 +935,7 @@ static struct governor_attr down_rate_limit_us = __ATTR_RW(down_rate_limit_us);
 static struct governor_attr efficient_freq = __ATTR_RW(efficient_freq);
 static struct governor_attr up_delay = __ATTR_RW(up_delay);
 
-static struct attribute *sugov_attributes[] = {
+static struct attribute *sugov_attrs[] = {
 	&up_rate_limit_us.attr,
 	&down_rate_limit_us.attr,
 	&efficient_freq.attr,
@@ -942,10 +943,19 @@ static struct attribute *sugov_attributes[] = {
 	NULL
 };
 
+static struct attribute_group sugov_attr_group = {
+	.attrs = sugov_attrs,
+};
+
+static const struct attribute_group *sugov_groups[] = {
+	&sugov_attr_group,
+	NULL
+};
+
 static void sugov_tunables_free(struct kobject *kobj)
 {
-	struct gov_attr_set *attr_set = container_of(kobj, struct gov_attr_set, kobj);
-	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+	struct sugov_tunables *tunables = to_sugov_tunables(
+		container_of(kobj, struct gov_attr_set, kobj));
 
 	if (tunables->efficient_freq != default_efficient_freq)
 		kfree(tunables->efficient_freq);
@@ -956,7 +966,7 @@ static void sugov_tunables_free(struct kobject *kobj)
 }
 
 static struct kobj_type sugov_tunables_ktype = {
-	.default_attrs = sugov_attributes,
+	.default_groups = sugov_groups,
 	.sysfs_ops = &governor_sysfs_ops,
 	.release = &sugov_tunables_free,
 };
@@ -1041,22 +1051,14 @@ static struct sugov_tunables *sugov_tunables_alloc(struct sugov_policy *sg_polic
 	struct sugov_tunables *tunables;
 
 	tunables = kzalloc(sizeof(*tunables), GFP_KERNEL);
-	if (tunables)
+	if (tunables) {
 		gov_attr_set_init(&tunables->attr_set, &sg_policy->tunables_hook);
-
-	/*
-	 * schedhorizon intentionally never shares a single global tunables
-	 * struct across policies, unlike stock schedutil. efficient_freq/
-	 * up_delay need independent values per cluster (e.g. LITTLE vs big),
-	 * so every cpufreq_policy always gets its own kobject and tunables
-	 * here, regardless of have_governor_per_policy().
-	 */
+	}
 	return tunables;
 }
 
 static void sugov_clear_global_tunables(void)
 {
-	/* No-op: schedhorizon never populates global_tunables. */
 }
 
 static int sugov_init(struct cpufreq_policy *policy)
@@ -1102,8 +1104,8 @@ static int sugov_init(struct cpufreq_policy *policy)
 	sg_policy->tunables = tunables;
 
 	ret = kobject_init_and_add(&tunables->attr_set.kobj, &sugov_tunables_ktype,
-				   get_governor_parent_kobj(policy), "%s-cpu%u",
-				   schedhorizon_gov.name, policy->cpu);
+				   &policy->kobj, "%s",
+				   schedhorizon_gov.name);
 	if (ret)
 		goto fail;
 
@@ -1113,11 +1115,9 @@ static int sugov_init(struct cpufreq_policy *policy)
 fail:
 	kobject_put(&tunables->attr_set.kobj);
 	policy->governor_data = NULL;
-	sugov_clear_global_tunables();
 
 stop_kthread:
 	sugov_kthread_stop(sg_policy);
-	mutex_unlock(&global_tunables_lock);
 
 free_sg_policy:
 	sugov_policy_free(sg_policy);
@@ -1125,6 +1125,7 @@ free_sg_policy:
 disable_fast_switch:
 	cpufreq_disable_fast_switch(policy);
 
+	mutex_unlock(&global_tunables_lock);
 	pr_err("initialization failed (error %d)\n", ret);
 	return ret;
 }
