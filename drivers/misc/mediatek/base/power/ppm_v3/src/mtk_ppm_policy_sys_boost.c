@@ -293,39 +293,9 @@ EXPORT_SYMBOL(mt_ppm_sysboost_set_freq_limit);
 
 static void ppm_sysboost_update_limit_cb(void)
 {
-	unsigned int i;
-	struct ppm_policy_req *req = &sysboost_policy.req;
-	struct ppm_userlimit_data *p = &sysboost_final_limit;
-
 	FUNC_ENTER(FUNC_LV_POLICY);
 
-	if (p->is_freq_limited_by_user
-		|| p->is_core_limited_by_user) {
-		ppm_clear_policy_limit(&sysboost_policy);
-
-		for (i = 0; i < req->cluster_num; i++) {
-			req->limit[i].min_cpufreq_idx =
-				(p->limit[i].min_freq_idx == -1)
-				? req->limit[i].min_cpufreq_idx
-				: p->limit[i].min_freq_idx;
-			req->limit[i].max_cpufreq_idx =
-				(p->limit[i].max_freq_idx == -1)
-				? req->limit[i].max_cpufreq_idx
-				: p->limit[i].max_freq_idx;
-		}
-
-		/* error check */
-		for (i = 0; i < req->cluster_num; i++) {
-			if (req->limit[i].max_cpu_core <
-				req->limit[i].min_cpu_core)
-				req->limit[i].min_cpu_core =
-				req->limit[i].max_cpu_core;
-			if (req->limit[i].max_cpufreq_idx >
-				req->limit[i].min_cpufreq_idx)
-				req->limit[i].min_cpufreq_idx =
-				req->limit[i].max_cpufreq_idx;
-		}
-	}
+	ppm_clear_policy_limit(&sysboost_policy);
 
 	FUNC_EXIT(FUNC_LV_POLICY);
 }

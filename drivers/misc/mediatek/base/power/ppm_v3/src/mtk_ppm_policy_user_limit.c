@@ -51,38 +51,9 @@ static bool ppm_userlimit_is_policy_active(void)
 
 static void ppm_userlimit_update_limit_cb(void)
 {
-	unsigned int i;
-	struct ppm_policy_req *req = &userlimit_policy.req;
-
 	FUNC_ENTER(FUNC_LV_POLICY);
 
-	if (userlimit_data.is_freq_limited_by_user
-		|| userlimit_data.is_core_limited_by_user) {
-		ppm_clear_policy_limit(&userlimit_policy);
-
-		for (i = 0; i < req->cluster_num; i++) {
-			req->limit[i].min_cpufreq_idx =
-				(userlimit_data.limit[i].min_freq_idx == -1)
-				? req->limit[i].min_cpufreq_idx
-				: userlimit_data.limit[i].min_freq_idx;
-			req->limit[i].max_cpufreq_idx =
-				(userlimit_data.limit[i].max_freq_idx == -1)
-				? req->limit[i].max_cpufreq_idx
-				: userlimit_data.limit[i].max_freq_idx;
-		}
-
-		/* error check */
-		for (i = 0; i < req->cluster_num; i++) {
-			if (req->limit[i].max_cpu_core <
-				req->limit[i].min_cpu_core)
-				req->limit[i].min_cpu_core =
-				req->limit[i].max_cpu_core;
-			if (req->limit[i].max_cpufreq_idx >
-				req->limit[i].min_cpufreq_idx)
-				req->limit[i].min_cpufreq_idx =
-				req->limit[i].max_cpufreq_idx;
-		}
-	}
+	ppm_clear_policy_limit(&userlimit_policy);
 
 	FUNC_EXIT(FUNC_LV_POLICY);
 }
