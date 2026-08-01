@@ -1661,6 +1661,59 @@ static void dualshock4_calibration_work(struct work_struct *work)
 	spin_unlock_irqrestore(&sc->lock, flags);
 }
 
+/* Fallback calibration values used when the controller's real calibration
+ * data cannot be read (most commonly on Bluetooth, where the feature report
+ * request can fail due to timing or CRC errors). These are derived from
+ * typical DS4 unit characteristics so the motion sensors remain somewhat
+ * usable rather than completely dead. The gyro scale matches a typical
+ * unit (speed_2x ~ 133, plus-minus ~ 266, normalized to 1/1024 deg/s);
+ * the accelerometer reports raw counts in 1/DS4_ACC_RES_PER_G G units.
+ * Buttons, sticks and triggers are unaffected by calibration and continue
+ * to work normally regardless.
+ */
+static void dualshock4_set_default_calib_data(struct sony_sc *sc)
+{
+	int n;
+
+	hid_warn(sc->hdev,
+		"DualShock 4 calibration data unavailable, using default calibration values. Motion sensors may be inaccurate.\n");
+
+	/* Gyro axes (ABS_RX, ABS_RY, ABS_RZ). */
+	for (n = 0; n < 3; n++) {
+		sc->ds4_calib_data[n].abs_code = ABS_RX + n;
+		sc->ds4_calib_data[n].bias = 0;
+		sc->ds4_calib_data[n].sens_numer = 133 * DS4_GYRO_RES_PER_DEG_S;
+		sc->ds4_calib_data[n].sens_denom = 266;
+	}
+
+	/* Accelerometer axes (ABS_X, ABS_Y, ABS_Z). */
+	for (n = 3; n < 6; n++) {
+		sc->ds4_calib_data[n].abs_code = ABS_X + (n - 3);
+		sc->ds4_calib_data[n].bias = 0;
+		sc->ds4_calib_data[n].sens_numer = 2 * DS4_ACC_RES_PER_G;
+		sc->ds4_calib_data[n].sens_denom = 2 * DS4_ACC_RES_PER_G;
+	}
+}
+
+/* Wrapper around dualshock4_get_calibration_data() that does not propagate
+ * read failures to the caller. On Bluetooth the calibration feature report
+ * can fail to return (CRC errors, controller not ready, etc.) and failing
+ * the whole probe here would prevent the input device from being claimed,
+ * taking buttons, sticks and triggers down with it. Instead we populate the
+ * calibration data with sensible defaults so the motion sensors remain
+ * usable (albeit uncalibrated) and the rest of the controller works.
+ */
+static int dualshock4_get_calibration_data_safe(struct sony_sc *sc)
+{
+	int ret;
+
+	ret = dualshock4_get_calibration_data(sc);
+	if (ret < 0)
+		dualshock4_set_default_calib_data(sc);
+
+	return 0;
+}
+
 static void sixaxis_set_leds_from_id(struct sony_sc *sc)
 {
 	static const u8 sixaxis_leds[10][4] = {
@@ -2639,11 +2692,15 @@ static int sony_input_configured(struct hid_device *hdev,
 
 		sony_init_output_report(sc, sixaxis_send_output_report);
 	} else if (sc->quirks & DUALSHOCK4_CONTROLLER) {
-		ret = dualshock4_get_calibration_data(sc);
-		if (ret < 0) {
-			hid_err(hdev, "Failed to get calibration data from Dualshock 4\n");
-			goto err_stop;
-		}
+		/* Calibration data is best-effort on DS4: if the feature
+		 * report cannot be read (common on Bluetooth due to CRC /
+		 * timing failures) dualshock4_get_calibration_data_safe()
+		 * falls back to default values and always returns 0, so the
+		 * input device is still claimed. Buttons, sticks, triggers
+		 * and the touchpad keep working; only the motion sensors are
+		 * uncalibrated in that case.
+		 */
+		dualshock4_get_calibration_data_safe(sc);
 
 		/*
 		 * The Dualshock 4 touchpad supports 2 touches and has a
