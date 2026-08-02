@@ -779,7 +779,6 @@ static void sugov_exit(struct cpufreq_policy *policy)
 	sugov_policy_free(sg_policy);
 
 	cpufreq_disable_fast_switch(policy);
-	kobject_put(&tunables->attr_set.kobj);
 }
 
 static int sugov_start(struct cpufreq_policy *policy)
