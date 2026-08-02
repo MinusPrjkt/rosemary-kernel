@@ -2084,6 +2084,7 @@ inserted:
 					new_bh = NULL;
 					goto inserted;
 				}
+				ref = le32_to_cpu(BHDR(new_bh)->h_refcount) + 1;
 				BHDR(new_bh)->h_refcount = cpu_to_le32(ref);
 				if (ref == EXT4_XATTR_REFCOUNT_MAX)
 				        clear_bit(MBE_REUSABLE_B, &ce->e_flags);
