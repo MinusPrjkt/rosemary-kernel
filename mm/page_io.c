@@ -140,8 +140,12 @@ out:
 	unlock_page(page);
 	WRITE_ONCE(bio->bi_private, NULL);
 	bio_put(bio);
-	wake_up_process(waiter);
+	/*
+	 * Drop our reference before waking the waiter so it cannot run on a
+	 * freed task_struct if the wakeup races with task exit.
+	 */
 	put_task_struct(waiter);
+	wake_up_process(waiter);
 }
 
 int generic_swapfile_activate(struct swap_info_struct *sis,
@@ -408,7 +412,12 @@ int swap_readpage(struct page *page, bool do_poll)
 	}
 
 	ret = 0;
-	bio = get_swap_bio(GFP_KERNEL, page, end_swap_bio_read);
+	/*
+	 * Use GFP_NOIO here: the page is already locked, and recursing into
+	 * the page allocator for a bio allocation can deadlock under memory
+	 * pressure. Mirrors __swap_writepage().
+	 */
+	bio = get_swap_bio(GFP_NOIO, page, end_swap_bio_read);
 	if (bio == NULL) {
 		unlock_page(page);
 		ret = -ENOMEM;
