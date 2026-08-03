@@ -536,8 +536,11 @@ static struct zswap_pool *zswap_pool_create(char *type, char *compressor)
 
 	ret = cpuhp_state_add_instance(CPUHP_MM_ZSWP_POOL_PREPARE,
 				       &pool->node);
-	if (ret)
+	if (ret) {
+		free_percpu(pool->tfm);
+		pool->tfm = NULL;
 		goto error;
+	}
 	pr_debug("using %s compressor\n", pool->tfm_name);
 
 	/* being the current pool takes 1 ref; this func expects the
@@ -551,7 +554,8 @@ static struct zswap_pool *zswap_pool_create(char *type, char *compressor)
 	return pool;
 
 error:
-	free_percpu(pool->tfm);
+	if (pool->tfm)
+		free_percpu(pool->tfm);
 	if (pool->zpool)
 		zpool_destroy_pool(pool->zpool);
 	kfree(pool);
@@ -603,6 +607,11 @@ static void zswap_pool_destroy(struct zswap_pool *pool)
 	zswap_pool_debug("destroying", pool);
 
 	cpuhp_state_remove_instance(CPUHP_MM_ZSWP_POOL_PREPARE, &pool->node);
+	/*
+	 * Wait for any in-flight frontswap store/load that already grabbed
+	 * a per-cpu tfm to finish before we free it.
+	 */
+	synchronize_rcu();
 	free_percpu(pool->tfm);
 	zpool_destroy_pool(pool->zpool);
 	kfree(pool);
@@ -904,19 +913,13 @@ static int zswap_writeback_entry(struct zpool *pool, unsigned long handle)
 	put_page(page);
 	zswap_written_back_pages++;
 
-	spin_lock(&tree->lock);
-	/* drop local reference */
-	zswap_entry_put(tree, entry);
-
 	/*
-	* There are two possible situations for entry here:
-	* (1) refcount is 1(normal case),  entry is valid and on the tree
-	* (2) refcount is 0, entry is freed and not on the tree
-	*     because invalidate happened during writeback
-	*  search the tree and free the entry if find entry
-	*/
-	if (entry == zswap_rb_search(&tree->rbroot, offset))
-		zswap_entry_put(tree, entry);
+	 * Drop the reference we took at the start. After this put, the
+	 * entry may already be freed if invalidate raced with us, so do
+	 * not re-search the tree — just drop the local ref unconditionally.
+	 */
+	spin_lock(&tree->lock);
+	zswap_entry_put(tree, entry);
 	spin_unlock(&tree->lock);
 
 	goto end;
