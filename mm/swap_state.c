@@ -8,6 +8,7 @@
  *  Rewritten to use page cache, (C) 1998 Stephen Tweedie
  */
 #include <linux/mm.h>
+#include <linux/xarray.h>
 #include <linux/mm_inline.h>
 #include <linux/gfp.h>
 #include <linux/kernel_stat.h>
@@ -139,14 +140,14 @@ int __add_to_swap_cache(struct page *page, swp_entry_t entry, void **shadowp)
 			break;
 
 		item = radix_tree_deref_slot_protected(slot,
-				&address_space->i_pages.xa_lock);
+				&address_space->page_tree.xa_lock);
 		if (WARN_ON_ONCE(item && !radix_tree_exceptional_entry(item))) {
 			error = -EEXIST;
 			break;
 		}
 
-		__radix_tree_replace(&address_space->i_pages, node, slot,
-				     page + i, NULL);
+		__radix_tree_replace(&address_space->page_tree, node, slot,
+				     page + i, NULL, NULL);
 
 		if (shadowp) {
 			VM_BUG_ON(i);
@@ -220,7 +221,7 @@ void __delete_from_swap_cache(struct page *page, void *shadow)
 			continue;
 
 		__radix_tree_replace(&address_space->page_tree,
-				     node, slot, shadow, NULL);
+				     node, slot, shadow, NULL, NULL);
 		set_page_private(page + i, 0);
 	}
 	ClearPageSwapCache(page);
@@ -324,18 +325,18 @@ void clear_shadow_from_swap_cache(int type, unsigned long begin,
 		swp_entry_t entry = swp_entry(type, curr);
 		struct address_space *address_space = swap_address_space(entry);
 
-		xa_lock_irq(&address_space->i_pages);
-		radix_tree_for_each_slot(slot, &address_space->i_pages,
+		xa_lock_irq(&address_space->page_tree);
+		radix_tree_for_each_slot(slot, &address_space->page_tree,
 					 &iter, curr) {
 			item = radix_tree_deref_slot_protected(slot,
-					&address_space->i_pages.xa_lock);
+					&address_space->page_tree.xa_lock);
 			if (radix_tree_exceptional_entry(item))
-				radix_tree_iter_delete(&address_space->i_pages,
+				radix_tree_iter_delete(&address_space->page_tree,
 						       &iter, slot);
 			if (iter.next_index > end)
 				break;
 		}
-		xa_unlock_irq(&address_space->i_pages);
+		xa_unlock_irq(&address_space->page_tree);
 
 		/* search the next swapcache until we meet end */
 		curr >>= SWAP_ADDRESS_SPACE_SHIFT;
