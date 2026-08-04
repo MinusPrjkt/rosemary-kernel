@@ -4493,6 +4493,7 @@ done:
 		current->reclaim_state->mm_walk = NULL;
 
 	blk_finish_plug(&plug);
+	return scanned;
 }
 
 /******************************************************************************
