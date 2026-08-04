@@ -3060,7 +3060,7 @@ static void lru_gen_swap_refault(struct page *page, swp_entry_t entry)
 		return;
 
 	rcu_read_lock();
-	item = radix_tree_lookup(&mapping->i_pages, index);
+	item = radix_tree_lookup(&mapping->page_tree, index);
 	rcu_read_unlock();
 	if (radix_tree_exceptional_entry(item))
 		lru_gen_refault(page, item);
@@ -3144,7 +3144,7 @@ int do_swap_page(struct vm_fault *vmf)
 		page = lookup_swap_cache(entry, vma_readahead ? vma : NULL,
 					 vmf->address);
 	if (!page) {
-		if (skip_swapcache) {
+		if (0) { // skip_swapcache not defined
 			/* skip swapcache */
 			page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, vmf->address);
 			if (page) {
