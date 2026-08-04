@@ -1182,6 +1182,10 @@ out:
 	return 0;
 }
 
+/* Filter out PFN maps and apply type-specific VMA filtering */
+static int clear_refs_test_walk(unsigned long start, unsigned long end,
+				struct mm_walk *walk);
+
 static const struct mm_walk_ops clear_refs_walk_ops = {
 	.pmd_entry	= clear_refs_pte_range,
 	.test_walk	= clear_refs_test_walk,
