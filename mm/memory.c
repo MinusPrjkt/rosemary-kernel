@@ -48,6 +48,7 @@
 #include <linux/hugetlb.h>
 #include <linux/mman.h>
 #include <linux/swap.h>
+#include <linux/swapfile.h>
 #include <linux/highmem.h>
 #include <linux/pagemap.h>
 #include <linux/memremap.h>
@@ -3144,7 +3145,13 @@ int do_swap_page(struct vm_fault *vmf)
 		page = lookup_swap_cache(entry, vma_readahead ? vma : NULL,
 					 vmf->address);
 	if (!page) {
-		if (0) { // skip_swapcache not defined
+		struct swap_info_struct *si = swap_info[swp_type(entry)];
+		bool skip_swapcache = false;
+
+		if ((READ_ONCE(si->swap_map[swp_offset(entry)]) & ~SWAP_HAS_CACHE) == 1)
+			skip_swapcache = true;
+
+		if (skip_swapcache) {
 			/* skip swapcache */
 			page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, vmf->address);
 			if (page) {
