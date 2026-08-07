@@ -1938,8 +1938,10 @@ again:
 
 		/* need to clone skb, done only once */
 		skb2 = skb_clone(skb, GFP_ATOMIC);
-		if (!skb2)
+		if (!skb2) {
+			consume_skb(skb);
 			goto out_unlock;
+		}
 
 		net_timestamp_set(skb2);
 
