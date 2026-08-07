@@ -280,8 +280,18 @@ void lru_gen_refault(struct page *page, void *shadow)
 
 	rcu_read_lock();
 	memcg = mem_cgroup_from_id(memcg_id);
-	if (!mem_cgroup_disabled() && !memcg)
-		goto unlock;
+	if (!mem_cgroup_disabled() && !memcg) {
+		/*
+		 * memcg_id 0 is reserved for the root memcg, which is not
+		 * stored in mem_cgroup_idr (idr_alloc starts at 1).  Fall
+		 * back to root_mem_cgroup so refault tracking works for
+		 * pages evicted from the root cgroup — the common case when
+		 * CONFIG_MEMCG is enabled but no cgroup hierarchy is in use.
+		 */
+		if (memcg_id || !root_mem_cgroup)
+			goto unlock;
+		memcg = root_mem_cgroup;
+	}
 
 	token >>= LRU_REFS_WIDTH;
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
