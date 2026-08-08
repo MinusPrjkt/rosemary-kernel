@@ -236,6 +236,10 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 		return sg_policy->next_freq;
 	sg_policy->cached_raw_freq = freq;
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
+	if (freq > policy->max)
+		freq = policy->max;
+	else if (freq < policy->min)
+		freq = policy->min;
 	return freq;
 #else
 	return cpufreq_driver_resolve_freq(policy, freq);
