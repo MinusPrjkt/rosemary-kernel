@@ -2404,6 +2404,7 @@ static int mtk_charger_plug_out(struct charger_manager *info)
 	charger_dev_set_input_current(info->chg1_dev, 100000);
 	charger_dev_set_mivr(info->chg1_dev, info->data.min_charger_voltage);
 	charger_dev_plug_out(info->chg1_dev);
+	charger_dev_rerun_apsd(info->chg1_dev, false);
 	power_supply_changed(pinfo->usb_psy);
 	chr_err("%s: pdata1->disable_charging_count = %d, pdata2->disable_charging_count = %d\n",
 		__func__, pdata1->disable_charging_count, pdata2->disable_charging_count);
