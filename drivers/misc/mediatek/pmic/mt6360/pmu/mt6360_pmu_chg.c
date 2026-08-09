@@ -1640,6 +1640,25 @@ out:
 	return ret;
 }
 
+#if defined(CONFIG_MT6360_PMU_CHARGER_TYPE_DETECT) && defined(CONFIG_TCPC_CLASS)
+/* Caller must hold mpci->chgdet_lock. */
+static int __mt6360_enable_chg_type_det_locked(struct mt6360_pmu_chg_info *mpci,
+					       bool en)
+{
+	int ret = 0;
+
+	if (mpci->tcpc_attach == en && !mpci->rerun_apsd) {
+		dev_info(mpci->dev, "%s attach(%d) is the same\n",
+			 __func__, mpci->tcpc_attach);
+		return 0;
+	}
+	mpci->tcpc_attach = en;
+	ret = (en ? mt6360_chgdet_pre_process :
+		    mt6360_chgdet_post_process)(mpci);
+	return ret;
+}
+#endif /* CONFIG_MT6360_PMU_CHARGER_TYPE_DETECT && CONFIG_TCPC_CLASS */
+
 static int mt6360_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 {
 	int ret = 0;
@@ -1648,15 +1667,7 @@ static int mt6360_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 
 	dev_info(mpci->dev, "%s\n", __func__);
 	mutex_lock(&mpci->chgdet_lock);
-	if (mpci->tcpc_attach == en && !mpci->rerun_apsd) {
-		dev_info(mpci->dev, "%s attach(%d) is the same\n",
-			 __func__, mpci->tcpc_attach);
-		goto out;
-	}
-	mpci->tcpc_attach = en;
-	ret = (en ? mt6360_chgdet_pre_process :
-		    mt6360_chgdet_post_process)(mpci);
-out:
+	ret = __mt6360_enable_chg_type_det_locked(mpci, en);
 	mutex_unlock(&mpci->chgdet_lock);
 #endif /* CONFIG_MT6360_PMU_CHARGER_TYPE_DETECT && CONFIG_TCPC_CLASS */
 	return ret;
@@ -1667,6 +1678,7 @@ static int mt6360_rerun_apsd(struct charger_device *chg_dev, bool en)
 	struct mt6360_pmu_chg_info *mpci = charger_get_data(chg_dev);
 	int ret;
 
+	mutex_lock(&mpci->chgdet_lock);
 	mpci->hvdcp_disable = en;
 	dev_info(mpci->dev,
 		 "%s: hvdcp_disable=%d, chg_type=%d.\n",
@@ -1675,12 +1687,17 @@ static int mt6360_rerun_apsd(struct charger_device *chg_dev, bool en)
 	if (!mpci->otg_enable) {
 		dev_info(mpci->dev, "%s: rerurn apsd start.\n", __func__);
 		mpci->rerun_apsd = true;
-		ret = mt6360_enable_chg_type_det(chg_dev, true);
+#if defined(CONFIG_MT6360_PMU_CHARGER_TYPE_DETECT) && defined(CONFIG_TCPC_CLASS)
+		ret = __mt6360_enable_chg_type_det_locked(mpci, true);
+#else
+		ret = 0;
+#endif
 	} else {
 		dev_info(mpci->dev,
 			 "%s: chg_type needn't rerun apsd.\n", __func__);
 		ret = 0;
 	}
+	mutex_unlock(&mpci->chgdet_lock);
 
 	return ret;
 }
