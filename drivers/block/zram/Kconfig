@@ -1,93 +1,68 @@
 # SPDX-License-Identifier: GPL-2.0
-config ZRAM
-	tristate "Compressed RAM block device support"
-	depends on BLOCK && SYSFS && ZSMALLOC && CRYPTO
-	select CRYPTO_LZO
-	default n
-	help
-	  Creates virtual block devices called /dev/zramX (X = 0, 1, ...).
-
-choice
-	prompt "Default zram compressor"
-	default ZRAM_DEF_COMP_LZO
-	depends on ZRAM
-
-config ZRAM_DEF_COMP_LZ4
-	bool "lz4"
-	depends on CRYPTO_LZ4
-
-config ZRAM_DEF_COMP_LZ4KD
-	bool "lz4kd"
+config ZRAM tristate "Compressed RAM block 
+	device support" depends on BLOCK && 
+	SYSFS && ZSMALLOC && CRYPTO select 
+	CRYPTO_LZO default n help
+	  Creates virtual block devices called 
+	  /dev/zramX (X = 0, 1, ...).
+choice prompt "Default zram compressor" 
+	default ZRAM_DEF_COMP_LZO depends on 
+	ZRAM
+config ZRAM_DEF_COMP_LZ4 bool "lz4" depends on 
+	CRYPTO_LZ4
+config ZRAM_DEF_COMP_LZ4KD bool "lz4kd" 
 	depends on CRYPTO_LZ4KD
-
-config ZRAM_DEF_COMP_LZO
-	bool "lzo"
-	depends on CRYPTO_LZO
-
-config ZRAM_DEF_COMP_LZ4HC
-	bool "lz4hc"
+config ZRAM_DEF_COMP_LZO bool "lzo" depends on 
+	CRYPTO_LZO
+config ZRAM_DEF_COMP_LZ4HC bool "lz4hc" 
 	depends on CRYPTO_LZ4HC
-
-config ZRAM_DEF_COMP_842
-	bool "842"
-	depends on CRYPTO_842
-
-config ZRAM_DEF_COMP_ZSTD
-	bool "zstd"
-	depends on CRYPTO_ZSTD
-endchoice
-
-config ZRAM_DEF_COMP
-	string
-	depends on ZRAM
-	default "lz4" if ZRAM_DEF_COMP_LZ4
-	default "lz4kd" if ZRAM_DEF_COMP_LZ4KD
-	default "lzo" if ZRAM_DEF_COMP_LZO
-	default "lz4hc" if ZRAM_DEF_COMP_LZ4HC
-	default "842" if ZRAM_DEF_COMP_842
-	default "zstd" if ZRAM_DEF_COMP_ZSTD
-	default "lzo"
-
-config ZRAM_WRITEBACK
-	bool "Write back incompressible or idle page to backing device"
-	depends on ZRAM
+config ZRAM_DEF_COMP_842 bool "842" depends on 
+	CRYPTO_842
+config ZRAM_DEF_COMP_ZSTD bool "zstd" depends 
+	on CRYPTO_ZSTD
+endchoice config ZRAM_DEF_COMP string depends 
+	on ZRAM default "lz4" if 
+	ZRAM_DEF_COMP_LZ4 default "lz4kd" if 
+	ZRAM_DEF_COMP_LZ4KD default "lzo" if 
+	ZRAM_DEF_COMP_LZO default "lz4hc" if 
+	ZRAM_DEF_COMP_LZ4HC default "842" if 
+	ZRAM_DEF_COMP_842 default "zstd" if 
+	ZRAM_DEF_COMP_ZSTD default "lzo"
+config ZRAM_WRITEBACK bool "Write back 
+	incompressible or idle page to backing 
+	device" depends on ZRAM help
+	  With incompressible page, there is 
+	  no memory saving to keep it in 
+	  memory. Instead, write it out to 
+	  backing device.
+config ZRAM_MEMORY_TRACKING bool "Track zRam 
+	block status" depends on ZRAM && 
+	DEBUG_FS help
+	  With this feature, admin can track 
+	  the state of allocated blocks of 
+	  zRAM. Admin could see the 
+	  information via 
+	  /sys/kernel/debug/zram/zramX/block_state.
+config ZRAM_DEDUP bool "Deduplication support 
+	for ZRAM data" depends on ZRAM select 
+	XXHASH default n help
+	  Deduplicate ZRAM data to reduce 
+	  amount of memory consumption.
+config ZRAM_ENTROPY bool "Use entropy 
+	optimization for zram" depends on ZRAM 
 	help
-	  With incompressible page, there is no memory saving to keep it
-	  in memory. Instead, write it out to backing device.
-
-config ZRAM_MEMORY_TRACKING
-	bool "Track zRam block status"
-	depends on ZRAM && DEBUG_FS
-	help
-	  With this feature, admin can track the state of allocated blocks
-	  of zRAM.
-
-config ZRAM_DEDUP
-	bool "Deduplication support for ZRAM data"
-	depends on ZRAM
-	select XXHASH
-	default n
-	help
-	  Deduplicate ZRAM data to reduce amount of memory consumption.
-
-config ZRAM_ENTROPY
-	bool "Use entropy optimization for zram"
-	depends on ZRAM
-	help
-	  With this feature, entropy will be calculated for each page.
-	  Pages above ZRAM_ENTROPY_THRESHOLD entropy will be
-	  stored uncompressed.
-
-config ZRAM_ENTROPY_THRESHOLD
-	int "Entropy threshold"
-	depends on ZRAM && ZRAM_ENTROPY
-	default 80000
-	help
-	  Pages with entropy above ZRAM_ENTROPY_THRESHOLD will be
-	  stored uncompressed. Default is 80000.
-
-config ZRAM_SIZE_OVERRIDE
-	int "zram size to set from kernel"
-	range 1 8
-	depends on ZRAM
-	default 2
+	  With this feature, entropy will be 
+	  calculated for each page. Pages 
+	  above ZRAM_ENTROPY_THRESHOLD entropy 
+	  will be stored uncompressed.
+config ZRAM_ENTROPY_THRESHOLD int "Entropy 
+	threshold" depends on ZRAM && 
+	ZRAM_ENTROPY default 80000 help
+	  Pages with entropy above 
+	  ZRAM_ENTROPY_THRESHOLD will be 
+	  stored uncompressed. Default is 
+	  80000.
+config ZRAM_SIZE_OVERRIDE int "zram size to 
+	set from kernel" range 1 8 depends on 
+	ZRAM default 2
+EOF
