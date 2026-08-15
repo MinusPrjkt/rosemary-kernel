@@ -2,15 +2,28 @@
 config ZRAM
 	tristate "Compressed RAM block device support"
 	depends on BLOCK && SYSFS && ZSMALLOC && CRYPTO
-	select CRYPTO_LZO
-	default n
+	depends on CRYPTO_LZO || CRYPTO_ZSTD || CRYPTO_LZ4 || CRYPTO_LZ4KD || CRYPTO_LZ4HC || CRYPTO_842
 	help
 	  Creates virtual block devices called /dev/zramX (X = 0, 1, ...).
+	  Pages written to these disks are compressed and stored in memory
+	  itself. These disks allow very fast I/O and compression provides
+	  good amounts of memory savings.
+
+	  It has several use cases, for example: /tmp storage, use as swap
+	  disks and maybe many more.
 
 choice
 	prompt "Default zram compressor"
-	default ZRAM_DEF_COMP_LZO
+	default ZRAM_DEF_COMP_LZ4
 	depends on ZRAM
+
+config ZRAM_DEF_COMP_LZORLE
+	bool "lzo-rle"
+	depends on CRYPTO_LZO
+
+config ZRAM_DEF_COMP_ZSTD
+	bool "zstd"
+	depends on CRYPTO_ZSTD
 
 config ZRAM_DEF_COMP_LZ4
 	bool "lz4"
@@ -21,25 +34,6 @@ config ZRAM_DEF_COMP_LZ4KD
 	depends on CRYPTO_LZ4KD
 
 config ZRAM_DEF_COMP_LZO
-	bool "lzo"
-	depends on CRYPTO_LZO
-endchoice
-
-config ZRAM_DEF_COMP
-	string
-	depends on ZRAM
-	default "lz4" if ZRAM_DEF_COMP_LZ4
-	default "lz4kd" if ZRAM_DEF_COMP_LZ4KD
-	default "lzo" if ZRAM_DEF_COMP_LZO
-	default "lzo"
-
-config ZRAM_WRITEBACK
-	bool "Write back incompressible or idle page to backing device"
-	depends on ZRAM
-
-config ZRAM_MEMORY_TRACKING
-	bool "Track zRam block status"
-	depends on ZRAM && DEBUG_FS
 	bool "lzo"
 	depends on CRYPTO_LZO
 
