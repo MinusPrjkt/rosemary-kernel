@@ -3053,17 +3053,22 @@ static void lru_gen_exit_fault(void)
 static void lru_gen_swap_refault(struct page *page, swp_entry_t entry)
 {
 	void *item;
-	struct address_space *mapping = swap_address_space(entry);
-	pgoff_t index = swp_offset(entry);
+	struct address_space *mapping;
+	pgoff_t index;
 
 	if (!lru_gen_enabled())
 		return;
 
+	mapping = swap_address_space(entry);
+	if (!mapping)
+		return;
+
+	index = swp_offset(entry);
 	rcu_read_lock();
 	item = radix_tree_lookup(&mapping->page_tree, index);
-	rcu_read_unlock();
 	if (radix_tree_exceptional_entry(item))
 		lru_gen_refault(page, item);
+	rcu_read_unlock();
 }
 #else
 static void lru_gen_enter_fault(struct vm_area_struct *vma)
