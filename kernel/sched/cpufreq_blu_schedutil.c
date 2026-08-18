@@ -235,16 +235,7 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	if (freq == sg_policy->cached_raw_freq && sg_policy->next_freq != UINT_MAX)
 		return sg_policy->next_freq;
 	sg_policy->cached_raw_freq = freq;
-#ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
-	if (freq > policy->max)
-		freq = policy->max;
-	else if (freq < policy->min)
-		freq = policy->min;
-	freq = cpufreq_driver_resolve_freq(policy, freq);
-	return freq;
-#else
 	return cpufreq_driver_resolve_freq(policy, freq);
-#endif
 }
 
 static void sugov_get_util(unsigned long *util, unsigned long *max, int cpu)
@@ -371,7 +362,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	if (flags & SCHED_CPUFREQ_DL) {
 		/* clear cache when it's bypassed */
 		sg_policy->cached_raw_freq = 0;
-		next_f = policy->cpuinfo.max_freq;
+		next_f = cpufreq_driver_resolve_freq(policy, policy->cpuinfo.max_freq);
 	} else {
 		sugov_get_util(&util, &max, sg_cpu->cpu);
 		util = uclamp_util(cpu_rq(sg_cpu->cpu), util);
@@ -420,7 +411,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		if (j_sg_cpu->flags & SCHED_CPUFREQ_DL) {
 			/* clear cache when it's bypassed */
 			sg_policy->cached_raw_freq = 0;
-			return policy->cpuinfo.max_freq;
+			return cpufreq_driver_resolve_freq(policy, policy->cpuinfo.max_freq);
 		}
 
 		j_util = j_sg_cpu->util;
@@ -464,7 +455,8 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 
 	if (sugov_should_update_freq(sg_policy, time)) {
 		if (flags & SCHED_CPUFREQ_DL) {
-			next_f = sg_policy->policy->cpuinfo.max_freq;
+			next_f = cpufreq_driver_resolve_freq(sg_policy->policy,
+							     sg_policy->policy->cpuinfo.max_freq);
 			/* clear cache when it's bypassed */
 			sg_policy->cached_raw_freq = 0;
 		} else {
