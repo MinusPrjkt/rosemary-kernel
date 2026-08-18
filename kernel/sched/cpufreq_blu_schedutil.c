@@ -240,6 +240,7 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 		freq = policy->max;
 	else if (freq < policy->min)
 		freq = policy->min;
+	freq = cpufreq_driver_resolve_freq(policy, freq);
 	return freq;
 #else
 	return cpufreq_driver_resolve_freq(policy, freq);
