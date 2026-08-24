@@ -3174,7 +3174,6 @@ int do_swap_page(struct vm_fault *vmf)
 				__SetPageSwapBacked(page);
 				set_page_private(page, entry.val);
 				lru_gen_swap_refault(page, entry);
-				lru_cache_add_anon(page);
 				swap_readpage(page, true);
 			}
 		} else if (vma_readmore && (vmf->flags & FAULT_FLAG_SPECULATIVE)) {
@@ -3310,6 +3309,8 @@ int do_swap_page(struct vm_fault *vmf)
 	} else {
 		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
 		mem_cgroup_commit_charge(page, memcg, true, false);
+		if (!swapcache)
+			lru_cache_add_anon(page);
 		if (!lru_gen_enabled())
 			activate_page(page);
 	}
