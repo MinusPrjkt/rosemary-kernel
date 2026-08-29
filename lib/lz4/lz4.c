@@ -1575,9 +1575,12 @@ int LZ4_compress_fast_extState(void *state, const char *source, char *dest,
 			       int inputSize, int maxOutputSize,
 			       int acceleration)
 {
-	LZ4_stream_t_internal *const ctx =
-		&LZ4_initStream(state, sizeof(LZ4_stream_t))->internal_donotuse;
-	assert(ctx != NULL);
+	LZ4_stream_t *const stream = LZ4_initStream(state, sizeof(LZ4_stream_t));
+	LZ4_stream_t_internal *ctx;
+
+	if (stream == NULL)
+		return 0;
+	ctx = &stream->internal_donotuse;
 	if (acceleration < 1)
 		acceleration = LZ4_ACCELERATION_DEFAULT;
 	if (acceleration > LZ4_ACCELERATION_MAX)
@@ -1724,8 +1727,9 @@ static int LZ4_compress_destSize_extState_internal(LZ4_stream_t *state,
 						   int acceleration)
 {
 	void *const s = LZ4_initStream(state, sizeof(*state));
-	assert(s != NULL);
-	(void)s;
+
+	if (s == NULL)
+		return 0;
 
 	if (targetDstSize >=
 	    LZ4_compressBound(
