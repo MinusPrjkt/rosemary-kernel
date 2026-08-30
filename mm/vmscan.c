@@ -3905,6 +3905,7 @@ static long get_nr_evictable(struct lruvec *lruvec, unsigned long max_seq,
 static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc,
 		       unsigned long min_ttl)
 {
+	bool too_young = false;
 	bool need_aging;
 	long nr_to_scan;
 	int swappiness = get_swappiness(lruvec, sc);
@@ -3916,8 +3917,7 @@ static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc,
 		int gen = lru_gen_from_seq(min_seq[LRU_GEN_FILE]);
 		unsigned long birth = READ_ONCE(lruvec->lrugen.timestamps[gen]);
 
-		if (time_is_after_jiffies(birth + min_ttl))
-			return false;
+		too_young = time_is_after_jiffies(birth + min_ttl);
 	}
 
 	nr_to_scan = get_nr_evictable(lruvec, max_seq, min_seq, swappiness, &need_aging);
@@ -3932,7 +3932,7 @@ static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc,
 	if (nr_to_scan && need_aging && (!mem_cgroup_low(NULL, memcg) || sc->memcg_low_reclaim))
 		try_to_inc_max_seq(lruvec, max_seq, sc, swappiness, false);
 
-	return true;
+	return !too_young;
 }
 
 /* to protect the working set of the last N jiffies */
