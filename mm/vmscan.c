@@ -4016,7 +4016,7 @@ void lru_gen_look_around(struct page_vma_mapped_walk *pvmw)
 	unsigned long bitmap[BITS_TO_LONGS(MIN_LRU_BATCH)] = {};
 	struct mem_cgroup *memcg = page_memcg(pvmw->page);
 	struct pglist_data *pgdat = page_pgdat(pvmw->page);
-	struct lruvec *lruvec = mem_cgroup_lruvec(pgdat, memcg);
+	struct lruvec *lruvec = mem_cgroup_page_lruvec(pvmw->page, pgdat);
 	DEFINE_MAX_SEQ(lruvec);
 	int old_gen, new_gen = lru_gen_from_seq(max_seq);
 
