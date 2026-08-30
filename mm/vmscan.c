@@ -3976,12 +3976,16 @@ static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
 
 	current->reclaim_state->mm_walk = NULL;
 
+	/* check the order to exclude compaction-induced reclaim */
+	if (success || !min_ttl || sc->order || sc->priority == DEF_PRIORITY)
+		return;
+
 	/*
 	 * The main goal is to OOM kill if every generation from all memcgs is
 	 * younger than min_ttl. However, another theoretical possibility is all
 	 * memcgs are either below min or empty.
 	 */
-	if (!success && !sc->order && mutex_trylock(&oom_lock)) {
+	if (mutex_trylock(&oom_lock)) {
 		struct oom_control oc = {
 			.gfp_mask = sc->gfp_mask,
 		};
