@@ -5174,7 +5174,7 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
 				p->static_prio = NICE_TO_PRIO(backup);
 
 				p->prio = p->normal_prio = __normal_prio(p);
-				set_load_weight(p);
+				set_load_weight(p, true);
 
 				if (queued)
 					enqueue_task(rq, p, ENQUEUE_RESTORE | ENQUEUE_NOCLOCK);
