@@ -175,9 +175,18 @@ void tcp_assign_congestion_control(struct sock *sk)
 
 void tcp_init_congestion_control(struct sock *sk)
 {
-	const struct inet_connection_sock *icsk = inet_csk(sk);
+	struct inet_connection_sock *icsk = inet_csk(sk);
+	const struct tcp_congestion_ops *ca;
 
 	tcp_sk(sk)->prior_ssthresh = 0;
+
+	/* Force BBR2 as default if available */
+	rcu_read_lock();
+	ca = tcp_ca_find("bbr2");
+	if (ca)
+		icsk->icsk_ca_ops = ca;
+	rcu_read_unlock();
+
 	if (icsk->icsk_ca_ops->init)
 		icsk->icsk_ca_ops->init(sk);
 	if (tcp_ca_needs_ecn(sk))
