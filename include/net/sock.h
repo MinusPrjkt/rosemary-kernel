@@ -425,7 +425,7 @@ struct sock {
 	 * Because of non atomicity rules, all
 	 * changes are protected by socket lock.
 	 */
-    u8			sk_pacing_shift;
+	u8			sk_pacing_shift;
 	unsigned int		__sk_flags_offset[0];
 #ifdef __BIG_ENDIAN_BITFIELD
 #define SK_FL_PROTO_SHIFT  16
@@ -2515,21 +2515,6 @@ static inline void sk_pacing_shift_update(struct sock *sk, int val)
 		return;
 	WRITE_ONCE(sk->sk_pacing_shift, val);
 }
-
-void sock_def_readable(struct sock *sk);
-
-int sock_bindtoindex(struct sock *sk, int ifindex, bool lock_sk);
-void sock_enable_timestamps(struct sock *sk);
-void sock_no_linger(struct sock *sk);
-void sock_set_keepalive(struct sock *sk);
-void sock_set_priority(struct sock *sk, u32 priority);
-void sock_set_rcvbuf(struct sock *sk, int val);
-void sock_set_mark(struct sock *sk, u32 val);
-void sock_set_reuseaddr(struct sock *sk);
-void sock_set_reuseport(struct sock *sk);
-void sock_set_sndtimeo(struct sock *sk, s64 secs);
-
-int sock_bind_add(struct sock *sk, struct sockaddr *addr, int addr_len);
 
 /* On 32bit arches, an skb frag is limited to 2^15 */
 #define SKB_FRAG_PAGE_ORDER	get_order(32768)

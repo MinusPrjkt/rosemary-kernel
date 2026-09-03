@@ -690,7 +690,6 @@ config TCP_CONG_BBR2
 	tristate "BBR2 TCP"
 	default n
 	---help---
-
 	BBR2 TCP congestion control is a model-based congestion control
 	algorithm that aims to maximize network utilization, keep queues and
 	retransmit rates low, and to be able to coexist with Reno/CUBIC in
@@ -749,11 +748,6 @@ choice
 endchoice
 
 endif
-
-config TCP_CONG_BBR2
-	tristate
-	depends on !TCP_CONG_ADVANCED
-	default y
 
 config TCP_CONG_CUBIC
 	tristate

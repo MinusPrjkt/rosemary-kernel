@@ -283,8 +283,10 @@ static void tcpnv_acked(struct sock *sk, const struct ack_sample *sample)
 		avg_rtt = sample->rtt_us;
 	}
 
-	/* rate in 100's bits per second */
-	rate64 = ((u64)sample->in_flight) * 8000000;
+	/* rate in 100's bits per second
+	 * sample->in_flight counts packets, so scale it back to bytes.
+	 */
+	rate64 = ((u64)sample->in_flight) * tp->mss_cache * 8000000;
 	rate = (u32)div64_u64(rate64, (u64)(avg_rtt ?: 1) * 100);
 
 	/* Remember the maximum rate seen during this RTT

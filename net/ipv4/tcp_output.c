@@ -69,6 +69,10 @@ void tcp_mstamp_refresh(struct tcp_sock *tp)
 {
 	u64 val = tcp_clock_ns();
 
+	/* cache last tcp_clock_ns() for cong control modules */
+	if (val > tp->tcp_clock_cache)
+		tp->tcp_clock_cache = val;
+
 	/* departure time for next data packet */
 	if (val > tp->tcp_wstamp_ns)
 		tp->tcp_wstamp_ns = val;
@@ -1027,8 +1031,6 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	tp = tcp_sk(sk);
 
 	if (clone_it) {
-		TCP_SKB_CB(skb)->tx.in_flight = TCP_SKB_CB(skb)->end_seq
-			- tp->snd_una;
 		oskb = skb;
 		if (unlikely(skb_cloned(skb)))
 			skb = pskb_copy(skb, gfp_mask);
@@ -1372,6 +1374,13 @@ int tcp_fragment(struct sock *sk, struct sk_buff *skb, u32 len,
 
 		if (diff)
 			tcp_adjust_pcount(sk, skb, diff);
+
+		/* tx.in_flight is the number of packets in flight once the
+		 * last byte of the skb has been transmitted. "buff" still
+		 * ends with that byte, so it keeps the original value, while
+		 * "skb" now ends earlier and must drop buff's packets.
+		 */
+		tcp_skb_sub_in_flight(skb, tcp_skb_pcount(buff));
 	}
 
 	/* Link BUFF into the send queue. */
@@ -1744,7 +1753,12 @@ EXPORT_SYMBOL(tcp_tso_autosize);
 static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
 {
 	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
-	u32 tso_segs = ca_ops->tso_segs_goal ? ca_ops->tso_segs_goal(sk) : 0;
+	u32 tso_segs;
+
+	if (ca_ops->tso_segs)
+		tso_segs = ca_ops->tso_segs(sk, mss_now);
+	else
+		tso_segs = ca_ops->tso_segs_goal ? ca_ops->tso_segs_goal(sk) : 0;
 
 	if (!tso_segs)
 		tso_segs = tcp_tso_autosize(sk, mss_now,
@@ -1851,7 +1865,7 @@ static inline bool tcp_nagle_test(const struct tcp_sock *tp, const struct sk_buf
 }
 
 /* Does at least the first segment of SKB fit into the send window? */
-bool tcp_snd_wnd_test(const struct tcp_sock *tp,
+static bool tcp_snd_wnd_test(const struct tcp_sock *tp,
 			     const struct sk_buff *skb,
 			     unsigned int cur_mss)
 {
