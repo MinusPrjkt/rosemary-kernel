@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /* BBR (Bottleneck Bandwidth and RTT) congestion control, v2
  *
  * BBRv2 is a model-based congestion control algorithm that aims for low

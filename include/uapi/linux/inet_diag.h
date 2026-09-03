@@ -194,6 +194,7 @@ struct tcp_bbr_info {
 	__u32	bbr_pacing_gain;	/* pacing gain shifted left 8 bits */
 	__u32	bbr_cwnd_gain;		/* cwnd gain shifted left 8 bits */
 };
+
 /* Phase as reported in netlink/ss stats. */
 enum tcp_bbr2_phase {
 	BBR2_PHASE_INVALID		= 0,
@@ -230,6 +231,6 @@ union tcp_cc_info {
 	struct tcpvegas_info	vegas;
 	struct tcp_dctcp_info	dctcp;
 	struct tcp_bbr_info	bbr;
-    struct tcp_bbr2_info bbr2;
+	struct tcp_bbr2_info	bbr2;
 };
 #endif /* _UAPI_INET_DIAG_H_ */
