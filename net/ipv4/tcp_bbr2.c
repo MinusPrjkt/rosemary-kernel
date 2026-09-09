@@ -607,9 +607,9 @@ static void bbr_debug(struct sock *sk, u32 acked,
 		 ctx->target_cwnd,
 		 tp->reord_seen ? 'r' : '.',  /* r: reordering seen? */
 		 ca_states[bbr->prev_ca_state],
-		 (rs->lost + rs->delivered) > 0 ?
-		 (1000 * rs->lost /
-		  (rs->lost + rs->delivered)) : 0,    /* lr: loss rate x1000 */
+		 (rs->losses + rs->delivered) > 0 ?
+		 (1000 * rs->losses /
+		  (rs->losses + rs->delivered)) : 0,  /* lr: loss rate x1000 */
 		 (rs->delivered) > 0 ?
 		 (1000 * rs->delivered_ce /
 		  (rs->delivered)) : 0,		      /* er: ECN rate x1000 */
@@ -1488,10 +1488,10 @@ static bool bbr2_is_inflight_too_high(const struct sock *sk,
 	const struct bbr *bbr = inet_csk_ca(sk);
 	u32 loss_thresh, ecn_thresh;
 
-	if (rs->lost > 0 && rs->tx_in_flight) {
+	if (rs->losses > 0 && rs->tx_in_flight) {
 		loss_thresh = (u64)rs->tx_in_flight * bbr->params.loss_thresh >>
 				BBR_SCALE;
-		if (rs->lost > loss_thresh)
+		if (rs->losses > loss_thresh)
 			return true;
 	}
 
@@ -2275,7 +2275,7 @@ static void bbr2_main(struct sock *sk, const struct rate_sample *rs)
 
 out:
 	bbr->prev_ca_state = inet_csk(sk)->icsk_ca_state;
-	bbr->loss_in_cycle |= rs->lost > 0;
+	bbr->loss_in_cycle |= rs->losses > 0;
 	bbr->ecn_in_cycle  |= rs->delivered_ce > 0;
 
 	bbr_debug(sk, rs->acked_sacked, rs, &ctx);
@@ -2498,7 +2498,7 @@ static void bbr2_skb_marked_lost(struct sock *sk, const struct sk_buff *skb)
 	bbr->loss_in_round = 1;
 	bbr->loss_in_cycle = 1;
 
-	if (!bbr->bw_probe_samples)
+	if (!bbr->bw_probe_samples && bbr->mode != BBR_STARTUP)
 		return;  /* not an skb sent while probing for bandwidth */
 	if (unlikely(!scb->tx.delivered_mstamp))
 		return;  /* skb was SACKed, reneged, marked lost; ignore it */
@@ -2509,6 +2509,7 @@ static void bbr2_skb_marked_lost(struct sock *sk, const struct sk_buff *skb)
 	memset(&rs, 0, sizeof(rs));
 	rs.tx_in_flight = scb->tx.in_flight;
 	rs.lost = tp->lost - scb->tx.lost;
+	rs.losses = rs.lost;
 	rs.is_app_limited = scb->tx.is_app_limited;
 	if (bbr2_is_inflight_too_high(sk, &rs)) {
 		rs.tx_in_flight = bbr2_inflight_hi_from_lost_skb(sk, &rs, skb);

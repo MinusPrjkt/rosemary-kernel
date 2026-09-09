@@ -153,6 +153,7 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 
 	rs->acked_sacked = delivered;	/* freshly ACKed or SACKed */
 	rs->losses = lost;		/* freshly marked lost */
+	rs->lost = tp->lost;
 	/* Return an invalid sample if no timing information is available or
 	 * in recovery from loss with SACK reneging. Rate samples taken during
 	 * a SACK reneging event may overestimate bw by including packets that
